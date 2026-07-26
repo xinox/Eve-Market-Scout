@@ -49,6 +49,18 @@
         <tbody></tbody>
       </table>
     </section>
+
+    <section>
+      <h2>Config-Dateien (Raw JSON)</h2>
+      <p class="muted">Zum schnellen Prototypen: rohe <code>config/*.json</code>-Dateien direkt im Browser bearbeiten. Wird beim Speichern als JSON validiert.</p>
+      <div class="row">
+        <select id="config-select"></select>
+        <button id="config-reload" type="button">Neu laden</button>
+        <button id="config-save" type="button">Speichern</button>
+        <span id="config-status" class="price-hint"></span>
+      </div>
+      <textarea id="config-editor" spellcheck="false"></textarea>
+    </section>
   </main>
 
   <script src="/app.js"></script>

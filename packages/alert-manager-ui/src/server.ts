@@ -11,7 +11,7 @@
  * Run with: npm run manage (see root package.json)
  */
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, readdirSync, statSync, existsSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import {
@@ -82,6 +82,31 @@ async function resolveTypeName(typeId: number): Promise<string> {
   } catch {
     return `Type ${typeId}`;
   }
+}
+
+/**
+ * Raw JSON editor for every config/*.json file, for fast prototyping —
+ * lets us tweak regions/structures/events etc. from the browser instead of
+ * a terminal, without hand-rolling typed forms for every one of them like
+ * watchlist/alert-rules got above. Whitelisted by name to avoid writing
+ * to arbitrary paths.
+ */
+const CONFIG_FILES: Record<string, string> = {
+  regions: "regions.json",
+  watchlist: "watchlist.json",
+  "alert-rules": "alert-rules.json",
+  structures: "structures.json",
+  "structure-alert-rules": "structure-alert-rules.json",
+  events: "events.json",
+};
+
+function configFilePath(name: string): string | null {
+  const file = CONFIG_FILES[name];
+  if (!file) return null;
+  const realPath = path.join(REPO_ROOT, "config", file);
+  if (existsSync(realPath)) return realPath;
+  const examplePath = path.join(REPO_ROOT, "config", file.replace(/\.json$/, ".example.json"));
+  return existsSync(examplePath) ? examplePath : realPath;
 }
 
 function serveStatic(req: IncomingMessage, res: ServerResponse): void {
@@ -174,6 +199,38 @@ const server = createServer(async (req, res) => {
 
     if (url.pathname === "/api/latest-prices" && req.method === "GET") {
       return sendJson(res, 200, loadLatestSnapshotRows());
+    }
+
+    if (url.pathname === "/api/config-files" && req.method === "GET") {
+      return sendJson(res, 200, Object.keys(CONFIG_FILES));
+    }
+
+    if (url.pathname.startsWith("/api/config/") && req.method === "GET") {
+      const name = decodeURIComponent(url.pathname.split("/").pop() ?? "");
+      const filePath = configFilePath(name);
+      if (!filePath) return sendJson(res, 404, { error: `Unknown config file: ${name}` });
+      const content = existsSync(filePath) ? readFileSync(filePath, "utf-8") : "[]\n";
+      return sendJson(res, 200, { content, path: path.relative(REPO_ROOT, filePath) });
+    }
+
+    if (url.pathname.startsWith("/api/config/") && req.method === "PUT") {
+      const name = decodeURIComponent(url.pathname.split("/").pop() ?? "");
+      const file = CONFIG_FILES[name];
+      if (!file) return sendJson(res, 404, { error: `Unknown config file: ${name}` });
+      const body = JSON.parse(await readBody(req)) as { content: string };
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(body.content);
+      } catch (err) {
+        return sendJson(res, 400, { error: `Invalid JSON: ${String(err)}` });
+      }
+      // Always write to the real (non-.example) file, even if we were
+      // editing the example fallback — prototyping edits shouldn't silently
+      // overwrite the checked-in template.
+      const realPath = path.join(REPO_ROOT, "config", file);
+      writeFileSync(realPath, JSON.stringify(parsed, null, 2) + "\n", "utf-8");
+      logger.info("Saved config file via UI", { name, path: path.relative(REPO_ROOT, realPath) });
+      return sendJson(res, 200, { ok: true });
     }
 
     return serveStatic(req, res);

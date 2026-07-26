@@ -63,4 +63,16 @@ th { color: var(--muted); font-weight: 500; }
 .price-hint { color: var(--muted); font-size: 0.8rem; }
 .delete-btn { background: transparent; color: var(--bad); border: 1px solid var(--bad); }
 
+#config-editor {
+  width: 100%;
+  min-height: 320px;
+  font-family: "Cascadia Code", "Consolas", monospace;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  resize: vertical;
+  white-space: pre;
+}
+#config-status.error { color: var(--bad); }
+#config-status.ok { color: var(--good); }
+
 .empty-row td { color: var(--muted); font-style: italic; }

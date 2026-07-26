@@ -141,6 +141,51 @@ document.getElementById("rule-form").addEventListener("submit", async (e) => {
   }
 });
 
+// --- Raw config-file editor -------------------------------------------
+
+function setConfigStatus(msg, kind) {
+  const el = document.getElementById("config-status");
+  el.textContent = msg;
+  el.className = "price-hint" + (kind ? ` ${kind}` : "");
+}
+
+async function loadConfigFile(name) {
+  setConfigStatus("Lade…", "");
+  try {
+    const data = await api(`/api/config/${encodeURIComponent(name)}`);
+    document.getElementById("config-editor").value = data.content;
+    setConfigStatus(`Geladen: ${data.path}`, "ok");
+  } catch (err) {
+    setConfigStatus(err.message, "error");
+  }
+}
+
+async function initConfigEditor() {
+  const files = await api("/api/config-files");
+  const select = document.getElementById("config-select");
+  select.innerHTML = files.map((f) => `<option value="${f}">${f}</option>`).join("");
+  select.addEventListener("change", () => loadConfigFile(select.value));
+  document.getElementById("config-reload").addEventListener("click", () => loadConfigFile(select.value));
+  document.getElementById("config-save").addEventListener("click", async () => {
+    const content = document.getElementById("config-editor").value;
+    setConfigStatus("Speichere…", "");
+    try {
+      await api(`/api/config/${encodeURIComponent(select.value)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+      setConfigStatus("Gespeichert.", "ok");
+      // Reflect changes elsewhere on the page (e.g. watchlist/rule tables)
+      // without a full page reload.
+      init();
+    } catch (err) {
+      setConfigStatus(err.message, "error");
+    }
+  });
+  await loadConfigFile(select.value);
+}
+
 async function init() {
   [watchlist, regions, latestPrices] = await Promise.all([
     api("/api/watchlist"),
@@ -153,3 +198,4 @@ async function init() {
 }
 
 init();
+initConfigEditor();
