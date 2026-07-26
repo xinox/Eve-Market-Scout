@@ -92,14 +92,17 @@ function serveStatic(req: IncomingMessage, res: ServerResponse): void {
     res.end("Forbidden");
     return;
   }
+  let contents: Buffer;
   try {
-    const ext = path.extname(filePath);
-    res.writeHead(200, { "Content-Type": MIME[ext] ?? "application/octet-stream" });
-    res.end(readFileSync(filePath));
+    contents = readFileSync(filePath);
   } catch {
     res.writeHead(404);
     res.end("Not found");
+    return;
   }
+  const ext = path.extname(filePath);
+  res.writeHead(200, { "Content-Type": MIME[ext] ?? "application/octet-stream" });
+  res.end(contents);
 }
 
 const server = createServer(async (req, res) => {
@@ -176,8 +179,19 @@ const server = createServer(async (req, res) => {
     return serveStatic(req, res);
   } catch (err) {
     logger.error("Request failed", { path: url.pathname, err: String(err) });
-    return sendJson(res, 500, { error: String(err) });
+    // Guard against double-responding (e.g. a handler that already wrote
+    // headers before throwing) — that would crash the whole process with
+    // ERR_HTTP_HEADERS_SENT instead of just failing this one request.
+    if (!res.headersSent) return sendJson(res, 500, { error: String(err) });
+    res.end();
   }
+});
+
+// Last-resort safety net: an uncaught error in a request handler should
+// never take down this local dev tool's whole process.
+server.on("clientError", (err, socket) => {
+  logger.error("Client error", { err: String(err) });
+  if (socket.writable) socket.end("HTTP/1.1 400 Bad Request\r\n\r\n");
 });
 
 server.listen(PORT, () => {
