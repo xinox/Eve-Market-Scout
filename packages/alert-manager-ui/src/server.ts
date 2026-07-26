@@ -30,6 +30,76 @@ const PORT = Number(process.env.PORT ?? 4310);
 const PUBLIC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "public");
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../");
 const SNAPSHOTS_DIR = path.join(REPO_ROOT, "data", "snapshots");
+const ENV_PATH = path.join(REPO_ROOT, ".env");
+
+// Keys we allow setting from the browser. Deliberately a whitelist — this
+// writes to .env, so we don't want an open "set any env var" endpoint.
+// Values are read back masked (see readEnvSettings) except where noted.
+const SETTABLE_ENV_KEYS = [
+  "DISCORD_WEBHOOK_URL",
+  "ESI_USER_AGENT",
+  "STORAGE_MODE",
+  "INGEST_API_URL",
+  "INGEST_API_SECRET",
+] as const;
+type SettableEnvKey = (typeof SETTABLE_ENV_KEYS)[number];
+
+/** Minimal .env parser: KEY=value per line, '#' comments, optional quotes.
+ * Good enough for this local tool — not meant to handle every dotenv edge
+ * case (multiline values, escaping, etc.). */
+function parseEnvFile(content: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const rawLine of content.split("\n")) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+    const eq = line.indexOf("=");
+    if (eq === -1) continue;
+    const key = line.slice(0, eq).trim();
+    let value = line.slice(eq + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    out[key] = value;
+  }
+  return out;
+}
+
+function readEnvSettings(): Record<SettableEnvKey, string> {
+  const content = existsSync(ENV_PATH) ? readFileSync(ENV_PATH, "utf-8") : "";
+  const parsed = parseEnvFile(content);
+  const result = {} as Record<SettableEnvKey, string>;
+  for (const key of SETTABLE_ENV_KEYS) result[key] = parsed[key] ?? "";
+  return result;
+}
+
+/** Updates a single KEY=value line in .env, preserving every other line
+ * (including comments) exactly as-is. Appends a new line if the key isn't
+ * present yet. Creates .env from scratch if it doesn't exist. */
+function writeEnvSetting(key: SettableEnvKey, value: string): void {
+  const content = existsSync(ENV_PATH) ? readFileSync(ENV_PATH, "utf-8") : "";
+  const lines = content.split("\n");
+  const needsQuotes = /[\s#]/.test(value);
+  const newLine = `${key}=${needsQuotes ? JSON.stringify(value) : value}`;
+  let found = false;
+  const nextLines = lines.map((rawLine) => {
+    const line = rawLine.trim();
+    if (!found && line && !line.startsWith("#") && line.startsWith(`${key}=`)) {
+      found = true;
+      return newLine;
+    }
+    return rawLine;
+  });
+  if (!found) {
+    if (nextLines.length > 0 && nextLines[nextLines.length - 1].trim() !== "") {
+      nextLines.push("");
+    }
+    nextLines.push(newLine);
+  }
+  writeFileSync(ENV_PATH, nextLines.join("\n").replace(/\n*$/, "\n"), "utf-8");
+}
 
 const MIME: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -199,6 +269,23 @@ const server = createServer(async (req, res) => {
 
     if (url.pathname === "/api/latest-prices" && req.method === "GET") {
       return sendJson(res, 200, loadLatestSnapshotRows());
+    }
+
+    if (url.pathname === "/api/settings" && req.method === "GET") {
+      return sendJson(res, 200, readEnvSettings());
+    }
+
+    if (url.pathname === "/api/settings" && req.method === "PUT") {
+      const body = JSON.parse(await readBody(req)) as { key: string; value: string };
+      if (!SETTABLE_ENV_KEYS.includes(body.key as SettableEnvKey)) {
+        return sendJson(res, 400, { error: `Unknown setting: ${body.key}` });
+      }
+      writeEnvSetting(body.key as SettableEnvKey, body.value ?? "");
+      logger.info("Saved setting via UI", { key: body.key });
+      // Note: this process itself doesn't reload .env — it only affects
+      // future `npm run collect` / `npm run manage` invocations, which now
+      // load .env via --env-file-if-exists (see root package.json).
+      return sendJson(res, 200, { ok: true });
     }
 
     if (url.pathname === "/api/config-files" && req.method === "GET") {

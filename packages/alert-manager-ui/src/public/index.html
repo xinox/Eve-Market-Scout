@@ -14,6 +14,16 @@
 
   <main>
     <section>
+      <h2>Einstellungen (.env)</h2>
+      <p class="muted">Landet in der lokalen <code>.env</code> (nicht in Git). Discord-Webhook eintragen, um Alarme wirklich zugestellt zu bekommen.</p>
+      <div class="row wrap">
+        <input type="text" id="setting-discord" placeholder="Discord Webhook URL" style="flex: 1; min-width: 320px;" />
+        <button id="setting-save-discord" type="button">Speichern</button>
+        <span id="setting-status" class="price-hint"></span>
+      </div>
+    </section>
+
+    <section>
       <h2>Watchlist</h2>
       <form id="watchlist-form" class="row">
         <input type="number" id="wl-typeid" placeholder="Type ID (z.B. 34 = Tritanium)" required />

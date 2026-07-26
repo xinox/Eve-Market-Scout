@@ -197,5 +197,40 @@ async function init() {
   await renderRules();
 }
 
+// --- Settings (.env) ----------------------------------------------------
+
+function setSettingStatus(msg, kind) {
+  const el = document.getElementById("setting-status");
+  el.textContent = msg;
+  el.className = "price-hint" + (kind ? ` ${kind}` : "");
+}
+
+async function initSettings() {
+  try {
+    const settings = await api("/api/settings");
+    document.getElementById("setting-discord").value = settings.DISCORD_WEBHOOK_URL ?? "";
+  } catch (err) {
+    setSettingStatus(err.message, "error");
+  }
+  document.getElementById("setting-save-discord").addEventListener("click", async () => {
+    const value = document.getElementById("setting-discord").value.trim();
+    setSettingStatus("Speichere…", "");
+    try {
+      await api("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: "DISCORD_WEBHOOK_URL", value }),
+      });
+      setSettingStatus(
+        "Gespeichert. Gilt ab dem nächsten `npm run collect` / `npm run manage` (Prozess neu starten).",
+        "ok"
+      );
+    } catch (err) {
+      setSettingStatus(err.message, "error");
+    }
+  });
+}
+
 init();
 initConfigEditor();
+initSettings();

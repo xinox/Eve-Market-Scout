@@ -8,9 +8,9 @@
     "packages/*"
   ],
   "scripts": {
-    "collect": "tsx packages/collector/src/index.ts",
-    "collect:structures": "tsx packages/collector/src/structureIndex.ts",
-    "manage": "tsx packages/alert-manager-ui/src/server.ts",
+    "collect": "node --env-file-if-exists=.env --import tsx packages/collector/src/index.ts",
+    "collect:structures": "node --env-file-if-exists=.env --import tsx packages/collector/src/structureIndex.ts",
+    "manage": "node --env-file-if-exists=.env --import tsx packages/alert-manager-ui/src/server.ts",
     "typecheck": "tsc --build --pretty",
     "test": "node --import tsx --test packages/*/src/**/*.test.ts"
   },
@@ -20,6 +20,6 @@
     "@types/node": "^22.7.0"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=20.12.0"
   }
 }
