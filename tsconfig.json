@@ -7,6 +7,7 @@
     { "path": "packages/notifiers-discord" },
     { "path": "packages/collector" },
     { "path": "packages/trade-analyzer" },
-    { "path": "packages/eve-sso" }
+    { "path": "packages/eve-sso" },
+    { "path": "packages/alert-manager-ui" }
   ]
 }

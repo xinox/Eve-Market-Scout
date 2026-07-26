@@ -1,4 +1,4 @@
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import type { RegionConfig, WatchlistItem, AlertRule, StructureConfig, StructureAlertRule } from "./types.js";
@@ -15,6 +15,11 @@ function loadJson<T>(relativePath: string, fallback: T): T {
   return JSON.parse(readFileSync(fullPath, "utf-8")) as T;
 }
 
+function saveJson<T>(relativePath: string, value: T): void {
+  const fullPath = path.join(REPO_ROOT, relativePath);
+  writeFileSync(fullPath, JSON.stringify(value, null, 2) + "\n", "utf-8");
+}
+
 export function loadRegions(): RegionConfig[] {
   return loadJson<RegionConfig[]>("config/regions.json", []);
 }
@@ -27,11 +32,19 @@ export function loadWatchlist(): WatchlistItem[] {
   return loadJson<WatchlistItem[]>(path_, []);
 }
 
+export function saveWatchlist(items: WatchlistItem[]): void {
+  saveJson("config/watchlist.json", items);
+}
+
 export function loadAlertRules(): AlertRule[] {
   const path_ = existsSync(path.join(REPO_ROOT, "config/alert-rules.json"))
     ? "config/alert-rules.json"
     : "config/alert-rules.example.json";
   return loadJson<AlertRule[]>(path_, []);
+}
+
+export function saveAlertRules(rules: AlertRule[]): void {
+  saveJson("config/alert-rules.json", rules);
 }
 
 export function loadStructures(): StructureConfig[] {

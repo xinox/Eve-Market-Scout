@@ -10,6 +10,7 @@
   "scripts": {
     "collect": "tsx packages/collector/src/index.ts",
     "collect:structures": "tsx packages/collector/src/structureIndex.ts",
+    "manage": "tsx packages/alert-manager-ui/src/server.ts",
     "typecheck": "tsc --build --pretty",
     "test": "node --import tsx --test packages/*/src/**/*.test.ts"
   },

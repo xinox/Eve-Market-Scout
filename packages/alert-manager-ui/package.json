@@ -1,0 +1,9 @@
+{
+  "name": "@eve-market-scout/alert-manager-ui",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/server.ts",
+  "dependencies": {
+    "@eve-market-scout/shared": "0.1.0"
+  }
+}

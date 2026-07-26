@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EVE Market Scout — Alert Manager</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header>
+    <h1>EVE Market Scout <span class="muted">/ Alert Manager</span></h1>
+    <p class="muted">Lokales Tool zum Verwalten von Watchlist + Alert-Regeln. Änderungen landen direkt in <code>config/watchlist.json</code> und <code>config/alert-rules.json</code>.</p>
+  </header>
+
+  <main>
+    <section>
+      <h2>Watchlist</h2>
+      <form id="watchlist-form" class="row">
+        <input type="number" id="wl-typeid" placeholder="Type ID (z.B. 34 = Tritanium)" required />
+        <input type="text" id="wl-name" placeholder="Name (optional, wird sonst via ESI aufgelöst)" />
+        <button type="submit">Hinzufügen</button>
+      </form>
+      <table id="watchlist-table">
+        <thead><tr><th>Type ID</th><th>Name</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Alert-Regeln</h2>
+      <form id="rule-form" class="row wrap">
+        <select id="rule-typeid" required></select>
+        <select id="rule-region" required></select>
+        <select id="rule-direction">
+          <option value="sell_at_or_below">Sell-Preis ≤ Schwelle (günstig einkaufen)</option>
+          <option value="buy_at_or_above">Buy-Preis ≥ Schwelle (gut verkaufen)</option>
+        </select>
+        <input type="number" id="rule-threshold" placeholder="Schwelle in ISK" step="0.01" required />
+        <select id="rule-channel">
+          <option value="both">Discord + Browser</option>
+          <option value="discord">Nur Discord</option>
+          <option value="browser">Nur Browser</option>
+        </select>
+        <input type="number" id="rule-cooldown" placeholder="Cooldown (Min.)" value="240" />
+        <button type="submit">Alarm anlegen</button>
+      </form>
+      <table id="rules-table">
+        <thead><tr><th>Item</th><th>Region</th><th>Richtung</th><th>Schwelle</th><th>Kanal</th><th>Cooldown</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
