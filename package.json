@@ -1,0 +1,24 @@
+{
+  "name": "eve-market-scout",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Modular EVE Online market intelligence: collection, alerts, trade analysis, historical analytics.",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "collect": "tsx packages/collector/src/index.ts",
+    "collect:structures": "tsx packages/collector/src/structureIndex.ts",
+    "typecheck": "tsc --build --pretty",
+    "test": "node --import tsx --test packages/*/src/**/*.test.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "@types/node": "^22.7.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

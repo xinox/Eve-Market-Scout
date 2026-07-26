@@ -1,0 +1,9 @@
+{
+  "name": "@eve-market-scout/eve-sso",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "login": "tsx scripts/login.ts"
+  }
+}

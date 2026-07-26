@@ -1,0 +1,13 @@
+name = "eve-market-scout-ingest"
+main = "src/index.ts"
+compatibility_date = "2026-07-01"
+
+# Run `wrangler d1 create eve-market-scout` once, then paste the returned
+# database_id below. See README.md in this package for the full walkthrough.
+[[d1_databases]]
+binding = "DB"
+database_name = "eve-market-scout"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+
+# Set with: wrangler secret put INGEST_SECRET
+# (must match INGEST_API_SECRET in your GitHub Actions secrets)

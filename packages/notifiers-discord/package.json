@@ -1,0 +1,9 @@
+{
+  "name": "@eve-market-scout/notifiers-discord",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@eve-market-scout/shared": "0.1.0"
+  }
+}

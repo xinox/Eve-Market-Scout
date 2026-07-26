@@ -1,0 +1,20 @@
+[
+  {
+    "id": "plex-cheap-buy-jita",
+    "regionId": 10000002,
+    "typeId": 44992,
+    "direction": "sell_at_or_below",
+    "thresholdIsk": 3500000,
+    "channel": "both",
+    "cooldownMinutes": 240
+  },
+  {
+    "id": "megacyte-good-sell-jita",
+    "regionId": 10000002,
+    "typeId": 40,
+    "direction": "buy_at_or_above",
+    "thresholdIsk": 250,
+    "channel": "discord",
+    "cooldownMinutes": 240
+  }
+]

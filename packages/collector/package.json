@@ -1,0 +1,13 @@
+{
+  "name": "@eve-market-scout/collector",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@eve-market-scout/shared": "0.1.0",
+    "@eve-market-scout/esi-client": "0.1.0",
+    "@eve-market-scout/eve-sso": "0.1.0",
+    "@eve-market-scout/alert-engine": "0.1.0",
+    "@eve-market-scout/notifiers-discord": "0.1.0"
+  }
+}

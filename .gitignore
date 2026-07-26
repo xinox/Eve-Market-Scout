@@ -1,0 +1,16 @@
+node_modules/
+dist/
+*.tsbuildinfo
+data/
+.env
+.env.local
+.DS_Store
+*.log
+.wrangler/
+
+# Local runtime configs copied from *.example.json — user/environment specific
+config/watchlist.json
+config/alert-rules.json
+config/structures.json
+config/structure-alert-rules.json
+config/events.json

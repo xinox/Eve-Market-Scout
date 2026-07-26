@@ -1,0 +1,12 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/shared" },
+    { "path": "packages/esi-client" },
+    { "path": "packages/alert-engine" },
+    { "path": "packages/notifiers-discord" },
+    { "path": "packages/collector" },
+    { "path": "packages/trade-analyzer" },
+    { "path": "packages/eve-sso" }
+  ]
+}

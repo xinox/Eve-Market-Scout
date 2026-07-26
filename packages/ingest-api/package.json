@@ -1,0 +1,14 @@
+{
+  "name": "@eve-market-scout/ingest-api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:migrate": "wrangler d1 execute eve-market-scout --file=../../db/migrations/0001_init.sql && wrangler d1 execute eve-market-scout --file=../../db/migrations/0002_structures.sql"
+  },
+  "devDependencies": {
+    "wrangler": "^3.90.0",
+    "@cloudflare/workers-types": "^4.20250101.0"
+  }
+}

@@ -1,0 +1,45 @@
+name: Collect structure market data
+
+# Optional module -- only does anything once config/structures.json is
+# non-empty and the EVE_* secrets below are set (see packages/eve-sso/README.md).
+# Delete this file if you never want structure-market tracking; nothing
+# else in the repo depends on it.
+
+on:
+  schedule:
+    - cron: "15 */4 * * *" # offset 15 min from the region collector
+  workflow_dispatch: {}
+
+jobs:
+  collect-structures:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Run structure collector
+        run: npm run collect:structures
+        env:
+          STORAGE_MODE: ${{ vars.STORAGE_MODE || 'json' }}
+          INGEST_API_URL: ${{ secrets.INGEST_API_URL }}
+          INGEST_API_SECRET: ${{ secrets.INGEST_API_SECRET }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          ESI_USER_AGENT: ${{ vars.ESI_USER_AGENT }}
+          EVE_CLIENT_ID: ${{ secrets.EVE_CLIENT_ID }}
+          EVE_CLIENT_SECRET: ${{ secrets.EVE_CLIENT_SECRET }}
+          EVE_REFRESH_TOKEN: ${{ secrets.EVE_REFRESH_TOKEN }}
+
+      - name: Upload snapshot artifact (json mode only)
+        if: ${{ vars.STORAGE_MODE != 'http' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: structure-snapshot-${{ github.run_id }}
+          path: data/structure-snapshots/
+          retention-days: 14
