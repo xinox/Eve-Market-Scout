@@ -7,7 +7,9 @@
       "Bash(npx wrangler *)",
       "Bash(curl -s http://127.0.0.1:4310/api/watchlist -o /dev/null -w \"alert-manager-ui \\(4310\\): %{http_code}\\\\n\")",
       "Bash(curl -s -X POST http://127.0.0.1:8787/ingest -H \"X-Ingest-Secret: local-dev-secret-change-me\" -H \"Content-Type: application/json\" -d '{\"runId\":\"ping\",\"timestamp\":\"2026-01-01T00:00:00Z\",\"rows\":[]}' -o /dev/null -w \"ingest-api \\(8787\\): %{http_code}\\\\n\")",
-      "Bash(node --env-file-if-exists=.env -e \"console.log\\(process.env.DISCORD_WEBHOOK_URL ? 'set \\(' + process.env.DISCORD_WEBHOOK_URL.length + ' chars\\)' : 'EMPTY'\\)\")"
+      "Bash(node --env-file-if-exists=.env -e \"console.log\\(process.env.DISCORD_WEBHOOK_URL ? 'set \\(' + process.env.DISCORD_WEBHOOK_URL.length + ' chars\\)' : 'EMPTY'\\)\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }

@@ -76,6 +76,11 @@ async function main() {
   const discordWebhook = process.env.DISCORD_WEBHOOK_URL;
   if (discordWebhook && triggered.length > 0) {
     await sendDiscordAlerts(discordWebhook, triggered);
+    logger.info("Sent triggered alerts to Discord", { count: triggered.length });
+  } else if (triggered.length > 0) {
+    logger.warn("Alerts triggered but DISCORD_WEBHOOK_URL is not set — nothing was sent", {
+      count: triggered.length,
+    });
   }
 
   logger.info("Collector run finished", {
