@@ -8,6 +8,7 @@ data/
 *.log
 .wrangler/
 .dev.vars
+.claude/*.tmp.*
 
 # Local runtime configs copied from *.example.json — user/environment specific
 config/watchlist.json
