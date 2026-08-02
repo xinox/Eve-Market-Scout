@@ -81,6 +81,11 @@ export interface MarketSnapshotRow {
   bestSellSystemId?: number | null;
   bestBuyLocationId?: number | null;
   bestBuySystemId?: number | null;
+  /** True for a synthetic row built from ESI's global average price
+   * (fallback for items with no live region order book, e.g. PLEX) —
+   * never persisted to storage, only used to let alerts still evaluate.
+   * See collector/src/index.ts. */
+  isGlobalAverage?: boolean;
 }
 
 export interface SnapshotBatch {

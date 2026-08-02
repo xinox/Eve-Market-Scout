@@ -51,27 +51,46 @@ export async function sendDiscordAlerts(
   const embeds = await Promise.all(
     alerts.map(async (a) => {
       const isSell = a.rule.direction === "sell_at_or_below";
-      const locationId = isSell ? a.row.bestSellLocationId : a.row.bestBuyLocationId;
+
+      // Synthetic rows from the global-average-price fallback (see
+      // collector/src/index.ts) have no location — there's no real order
+      // behind the price, so a station lookup would be meaningless.
+      const locationId = a.row.isGlobalAverage
+        ? null
+        : isSell
+          ? a.row.bestSellLocationId
+          : a.row.bestBuyLocationId;
       const locationName = await resolveStationName(locationId);
+
+      const priceFieldName = a.row.isGlobalAverage
+        ? "Ø globaler Preis"
+        : isSell
+          ? "Best sell"
+          : "Best buy";
+      const priceValue = (isSell ? a.row.bestSell : a.row.bestBuy)?.toLocaleString("de-DE") ?? "—";
+
+      const fields = a.row.isGlobalAverage
+        ? [
+            { name: "Region", value: regionLabel(a.row.regionId, context.regionNames), inline: true },
+            { name: priceFieldName, value: priceValue, inline: true },
+            {
+              name: "Hinweis",
+              value: "Kein Orderbuch in dieser Region — Preis ist ESI's globaler Durchschnitt.",
+              inline: false,
+            },
+          ]
+        : [
+            { name: "Region", value: regionLabel(a.row.regionId, context.regionNames), inline: true },
+            { name: "Ort", value: locationName ?? "unbekannt", inline: true },
+            { name: "Best sell", value: a.row.bestSell?.toLocaleString("de-DE") ?? "—", inline: true },
+            { name: "Best buy", value: a.row.bestBuy?.toLocaleString("de-DE") ?? "—", inline: true },
+          ];
 
       return {
         title: describeAlert(a, context.itemNames),
         url: appUrl,
         color: isSell ? 0x2ecc71 : 0xe67e22,
-        fields: [
-          { name: "Region", value: regionLabel(a.row.regionId, context.regionNames), inline: true },
-          { name: "Ort", value: locationName ?? "unbekannt", inline: true },
-          {
-            name: "Best sell",
-            value: a.row.bestSell?.toLocaleString("de-DE") ?? "—",
-            inline: true,
-          },
-          {
-            name: "Best buy",
-            value: a.row.bestBuy?.toLocaleString("de-DE") ?? "—",
-            inline: true,
-          },
-        ],
+        fields,
         // Discord renders `timestamp` in the embed footer as a localized,
         // relative-friendly date — this doubles as the "how fresh is this"
         // indicator (it's the collector run's timestamp, not send time).

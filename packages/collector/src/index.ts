@@ -7,7 +7,7 @@ import {
   type SnapshotBatch,
   type MarketSnapshotRow,
 } from "@eve-market-scout/shared";
-import { fetchRegionOrders } from "@eve-market-scout/esi-client";
+import { fetchRegionOrders, fetchGlobalPrices } from "@eve-market-scout/esi-client";
 import { evaluateAlerts } from "@eve-market-scout/alert-engine";
 import { sendDiscordAlerts } from "@eve-market-scout/notifiers-discord";
 import { aggregateOrders } from "./aggregate.js";
@@ -70,7 +70,41 @@ async function main() {
   await store.saveSnapshot(batch);
 
   const rules = loadAlertRules();
-  const triggered = evaluateAlerts(allRows, rules);
+
+  // Some watchlist items (PLEX being the practical case) have stopped
+  // trading through the normal region order book entirely, so they never
+  // get a row from aggregateOrders — their alert rules would just silently
+  // never fire. Fall back to ESI's global average price for exactly those
+  // rules, as a synthetic row used for evaluation only (never persisted —
+  // it's not a real region price, saving it to storage would be misleading).
+  const rulesNeedingFallback = rules.filter((rule) => {
+    const row = allRows.find((r) => r.regionId === rule.regionId && r.typeId === rule.typeId);
+    const relevant = row && (rule.direction === "sell_at_or_below" ? row.bestSell : row.bestBuy);
+    return relevant == null;
+  });
+
+  const alertRows = [...allRows];
+  if (rulesNeedingFallback.length > 0) {
+    const globalPrices = await fetchGlobalPrices();
+    for (const rule of rulesNeedingFallback) {
+      const price = globalPrices.get(rule.typeId);
+      if (price == null) continue;
+      alertRows.push({
+        regionId: rule.regionId,
+        typeId: rule.typeId,
+        timestamp,
+        bestSell: price,
+        bestBuy: price,
+        sellVolume: 0,
+        buyVolume: 0,
+        sellOrderCount: 0,
+        buyOrderCount: 0,
+        isGlobalAverage: true,
+      });
+    }
+  }
+
+  const triggered = evaluateAlerts(alertRows, rules);
   logger.info("Alert evaluation complete", { triggered: triggered.length });
 
   const discordWebhook = process.env.DISCORD_WEBHOOK_URL;

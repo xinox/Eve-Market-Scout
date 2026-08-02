@@ -88,4 +88,22 @@ export async function fetchStructureOrders(
   return orders;
 }
 
+/**
+ * Global, region-less average price per type_id (updated daily by CCP).
+ * Fallback for items that don't trade through a normal region order book
+ * anymore — PLEX being the practical example, see docs/ESI_NOTES.md.
+ * Not paginated; one call returns every tradable type_id (~16k rows).
+ *
+ * Docs: https://esi.evetech.net/ui/#/Market/get_markets_prices
+ */
+export async function fetchGlobalPrices(
+  opts: EsiFetchOptions = {}
+): Promise<Map<number, number>> {
+  const res = await esiFetch(`${ESI_BASE_URL}/markets/prices/`, opts);
+  const rows = (await res.json()) as Array<{ type_id: number; average_price?: number }>;
+  return new Map(
+    rows.filter((r) => r.average_price != null).map((r) => [r.type_id, r.average_price as number])
+  );
+}
+
 export * from "./http.js";
