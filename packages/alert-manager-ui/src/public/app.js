@@ -14,12 +14,23 @@ async function api(path, opts) {
   return res.json();
 }
 
-function priceHint(regionId, typeId) {
-  const row = latestPrices.find((r) => r.regionId === regionId && r.typeId === typeId);
-  if (!row) return "";
-  const sell = row.bestSell != null ? row.bestSell.toLocaleString("de-DE") : "–";
-  const buy = row.bestBuy != null ? row.bestBuy.toLocaleString("de-DE") : "–";
-  return `Sell ${sell} / Buy ${buy} ISK`;
+/** Current-price cell for a rule: shows the price the rule actually
+ * compares against (best sell for "günstig kaufen" rules, best buy for
+ * "gut verkaufen" rules), plus whether the rule would fire right now. */
+function currentPriceCell(rule) {
+  const row = latestPrices.find((r) => r.regionId === rule.regionId && r.typeId === rule.typeId);
+  if (!row) return '<span class="price-hint">keine Daten (noch nicht abgerufen)</span>';
+
+  const isSell = rule.direction === "sell_at_or_below";
+  const relevant = isSell ? row.bestSell : row.bestBuy;
+  if (relevant == null) return '<span class="price-hint">keine Order gefunden</span>';
+
+  const met = isSell ? relevant <= rule.thresholdIsk : relevant >= rule.thresholdIsk;
+  const label = `${relevant.toLocaleString("de-DE")} ISK`;
+  const badge = met
+    ? '<span class="ok">✓ würde auslösen</span>'
+    : '<span class="price-hint">noch nicht erreicht</span>';
+  return `${label}<div class="price-hint">${badge}</div>`;
 }
 
 function renderWatchlist() {
@@ -73,7 +84,7 @@ async function renderRules() {
   const tbody = document.querySelector("#rules-table tbody");
   tbody.innerHTML = "";
   if (rules.length === 0) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="7">Noch keine Alarme angelegt.</td></tr>';
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="8">Noch keine Alarme angelegt.</td></tr>';
   }
   for (const rule of rules) {
     const directionLabel =
@@ -83,9 +94,8 @@ async function renderRules() {
       <td>${itemLabel(rule.typeId)}</td>
       <td>${regionLabel(rule.regionId)}</td>
       <td>${directionLabel}</td>
-      <td>${rule.thresholdIsk.toLocaleString("de-DE")} ISK
-        <div class="price-hint">${priceHint(rule.regionId, rule.typeId)}</div>
-      </td>
+      <td>${rule.thresholdIsk.toLocaleString("de-DE")} ISK</td>
+      <td>${currentPriceCell(rule)}</td>
       <td>${rule.channel}</td>
       <td>${rule.cooldownMinutes ?? "–"} min</td>
       <td><button class="delete-btn" data-id="${rule.id}">Entfernen</button></td>
