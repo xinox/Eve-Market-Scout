@@ -3,7 +3,7 @@
 ## Data flow
 
 ```
-GitHub Actions (cron, every 4h)
+GitHub Actions (cron, every 30min)
         │
         ▼
   packages/collector
@@ -68,7 +68,7 @@ actively developing, worth remembering if the project goes dormant.
 ## Why aggregate-only storage, not every raw order
 
 A region's full order book can be tens of thousands of orders across all
-types. Storing every order every 4 hours would burn through D1's free tier
+types. Storing every order every 30 minutes would burn through D1's free tier
 fast and mostly store noise (99% of a station's order book is irrelevant to
 "what's the best price right now"). `aggregate.ts` collapses this to one row
 per (region, type) per run: best sell, best buy, total volume on each side.

@@ -2,10 +2,10 @@ name: Collect market data
 
 on:
   schedule:
-    # Every 4 hours. GitHub schedules on public repos with no other repo
+    # Every 30 minutes. GitHub schedules on public repos with no other repo
     # activity for 60 days get auto-disabled — see docs/ROADMAP.md for why
     # that's very unlikely to bite us, and what to do if it ever does.
-    - cron: "0 */4 * * *"
+    - cron: "*/30 * * * *"
   workflow_dispatch: {} # lets you trigger a run manually from the Actions tab
 
 jobs:
@@ -21,6 +21,18 @@ jobs:
           cache: "npm"
 
       - run: npm ci
+
+      # Runners are stateless — without this, per-rule cooldowns would reset
+      # every single run and every triggered alert would re-fire on the next
+      # poll (30min later) instead of respecting cooldownMinutes. Key is
+      # unique per run so `cache/save` always succeeds; restore-keys falls
+      # back to the most recent previous run's state.
+      - name: Restore alert cooldown state
+        uses: actions/cache/restore@v4
+        with:
+          path: data/alert-cooldowns.json
+          key: alert-cooldowns-${{ github.run_id }}
+          restore-keys: alert-cooldowns-
 
       - name: Run collector
         run: npm run collect
@@ -41,3 +53,10 @@ jobs:
           name: market-snapshot-${{ github.run_id }}
           path: data/snapshots/
           retention-days: 14
+
+      - name: Save alert cooldown state
+        if: always() # save even if the collector step failed partway through
+        uses: actions/cache/save@v4
+        with:
+          path: data/alert-cooldowns.json
+          key: alert-cooldowns-${{ github.run_id }}

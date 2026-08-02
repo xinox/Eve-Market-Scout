@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import path from "node:path";
 import {
   loadRegions,
   loadWatchlist,
@@ -14,6 +16,31 @@ import { aggregateOrders } from "./aggregate.js";
 import type { MarketStore } from "./store/store.js";
 import { JsonFileStore } from "./store/jsonFileStore.js";
 import { HttpIngestStore } from "./store/httpIngestStore.js";
+
+const COOLDOWN_STATE_FILE = path.join("data", "alert-cooldowns.json");
+
+/** Per-rule "last triggered at" state, persisted to a small local JSON file
+ * so cooldownMinutes actually holds across separate collector runs. Without
+ * this, evaluateAlerts starts fresh every run and cooldowns are a no-op —
+ * fine at a 4h cadence where you'd barely notice, but at 30min a stuck
+ * threshold would otherwise re-fire every single run.
+ * In CI (GitHub Actions), the workflow restores/saves this file via
+ * actions/cache across runs — see .github/workflows/collect-market-data.yml. */
+function loadCooldownState(): Map<string, Date> {
+  if (!existsSync(COOLDOWN_STATE_FILE)) return new Map();
+  try {
+    const raw = JSON.parse(readFileSync(COOLDOWN_STATE_FILE, "utf-8")) as Record<string, string>;
+    return new Map(Object.entries(raw).map(([id, iso]) => [id, new Date(iso)]));
+  } catch {
+    return new Map();
+  }
+}
+
+function saveCooldownState(state: Map<string, Date>): void {
+  mkdirSync(path.dirname(COOLDOWN_STATE_FILE), { recursive: true });
+  const raw = Object.fromEntries([...state.entries()].map(([id, d]) => [id, d.toISOString()]));
+  writeFileSync(COOLDOWN_STATE_FILE, JSON.stringify(raw, null, 2) + "\n", "utf-8");
+}
 
 function buildStore(): MarketStore {
   const mode = process.env.STORAGE_MODE ?? "json";
@@ -104,8 +131,14 @@ async function main() {
     }
   }
 
-  const triggered = evaluateAlerts(alertRows, rules);
+  const cooldownState = loadCooldownState();
+  const triggered = evaluateAlerts(alertRows, rules, cooldownState);
   logger.info("Alert evaluation complete", { triggered: triggered.length });
+
+  if (triggered.length > 0) {
+    for (const t of triggered) cooldownState.set(t.rule.id, new Date(t.triggeredAt));
+    saveCooldownState(cooldownState);
+  }
 
   const discordWebhook = process.env.DISCORD_WEBHOOK_URL;
   if (discordWebhook && triggered.length > 0) {

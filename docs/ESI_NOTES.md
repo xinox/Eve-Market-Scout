@@ -29,7 +29,7 @@ Trade hub region IDs used in `config/regions.json`:
 - `GET /markets/{region_id}/orders/` — all public buy/sell orders in a
   region, paginated via the `X-Pages` response header. Cached by ESI for
   300 seconds — polling more often than every 5 minutes returns identical
-  data. Our 3-4 hour cadence has enormous headroom.
+  data. Our 30-minute cadence still has enormous headroom.
 - `GET /markets/{region_id}/history/?type_id=...` — daily aggregates
   (average/high/low price, volume, order_count) for one type in one region,
   looking back roughly a year. No auth needed. This is the Phase 3 shortcut

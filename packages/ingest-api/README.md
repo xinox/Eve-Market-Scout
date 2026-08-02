@@ -36,10 +36,10 @@ And switch the collector workflow's `STORAGE_MODE` from `json` to `http`
 ## Free-tier headroom
 
 D1's free tier is 5 GB storage and 5M row reads/writes per month. At 5 trade
-hub regions × ~8 watchlist items × 6 runs/day, we're writing on the order of
-hundreds of rows a day — nowhere near the limit even after months of history.
-Re-check this if you expand the watchlist to "everything," see
-`docs/ESI_NOTES.md`.
+hub regions × ~8 watchlist items × 48 runs/day (30min cadence), we're writing
+on the order of ~2,000 rows a day (~60k/month) — nowhere near the limit even
+after months of history. Re-check this if you expand the watchlist to
+"everything" or shorten the cadence further, see `docs/ESI_NOTES.md`.
 
 ## Structure market route (optional module)
 
