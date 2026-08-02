@@ -72,7 +72,18 @@ th { color: var(--muted); font-weight: 500; }
   resize: vertical;
   white-space: pre;
 }
-#config-status.error { color: var(--bad); }
-#config-status.ok { color: var(--good); }
+.error { color: var(--bad); }
+.ok { color: var(--good); }
 
 .empty-row td { color: var(--muted); font-style: italic; }
+
+.field-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.field-label input { font-size: 0.9rem; color: var(--text); }
+
+#trigger-collect:disabled { opacity: 0.6; cursor: wait; }

@@ -14,6 +14,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { readFileSync, readdirSync, statSync, existsSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { spawn } from "node:child_process";
 import {
   logger,
   loadRegions,
@@ -37,6 +38,7 @@ const ENV_PATH = path.join(REPO_ROOT, ".env");
 // Values are read back masked (see readEnvSettings) except where noted.
 const SETTABLE_ENV_KEYS = [
   "DISCORD_WEBHOOK_URL",
+  "APP_URL",
   "ESI_USER_AGENT",
   "STORAGE_MODE",
   "INGEST_API_URL",
@@ -117,6 +119,40 @@ async function readBody(req: IncomingMessage): Promise<string> {
   const chunks: Buffer[] = [];
   for await (const chunk of req) chunks.push(chunk as Buffer);
   return Buffer.concat(chunks).toString("utf-8");
+}
+
+/** Runs a real collector pass (npm run collect) as a child process and waits
+ * for it to finish, capturing combined stdout/stderr. This is a "test alert
+ * now" button, not a simulation — it hits ESI live and, if a Discord webhook
+ * is configured, can actually send messages. Only one run at a time: the
+ * collector isn't designed for concurrent overlapping runs against the same
+ * local JSON snapshot dir. */
+let collectorRunning = false;
+
+function runCollector(): Promise<{ exitCode: number | null; output: string }> {
+  return new Promise((resolve, reject) => {
+    if (collectorRunning) {
+      reject(new Error("A collector run is already in progress"));
+      return;
+    }
+    collectorRunning = true;
+    const child = spawn(
+      process.execPath,
+      ["--env-file-if-exists=.env", "--import", "tsx", "packages/collector/src/index.ts"],
+      { cwd: REPO_ROOT }
+    );
+    let output = "";
+    child.stdout.on("data", (d) => (output += d.toString()));
+    child.stderr.on("data", (d) => (output += d.toString()));
+    child.on("error", (err) => {
+      collectorRunning = false;
+      reject(err);
+    });
+    child.on("close", (exitCode) => {
+      collectorRunning = false;
+      resolve({ exitCode, output });
+    });
+  });
 }
 
 /** Reads the most recently written local JSON snapshot (JsonFileStore output),
@@ -269,6 +305,20 @@ const server = createServer(async (req, res) => {
 
     if (url.pathname === "/api/latest-prices" && req.method === "GET") {
       return sendJson(res, 200, loadLatestSnapshotRows());
+    }
+
+    if (url.pathname === "/api/collect" && req.method === "POST") {
+      try {
+        const { exitCode, output } = await runCollector();
+        const triggeredMatch = output.match(/"msg":"Alert evaluation complete","triggered":(\d+)/);
+        return sendJson(res, exitCode === 0 ? 200 : 500, {
+          ok: exitCode === 0,
+          triggered: triggeredMatch ? Number(triggeredMatch[1]) : null,
+          output,
+        });
+      } catch (err) {
+        return sendJson(res, 409, { error: String((err as Error).message ?? err) });
+      }
     }
 
     if (url.pathname === "/api/settings" && req.method === "GET") {

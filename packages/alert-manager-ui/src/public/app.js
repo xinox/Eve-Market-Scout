@@ -186,6 +186,24 @@ async function initConfigEditor() {
   await loadConfigFile(select.value);
 }
 
+function renderLastUpdated() {
+  const el = document.getElementById("last-updated");
+  if (latestPrices.length === 0) {
+    el.textContent = "noch keine Daten (Alarm auslösen oder `npm run collect`)";
+    return;
+  }
+  const newest = latestPrices.reduce(
+    (max, r) => (r.timestamp > max ? r.timestamp : max),
+    latestPrices[0].timestamp
+  );
+  const ageMs = Date.now() - new Date(newest).getTime();
+  const ageMin = Math.round(ageMs / 60000);
+  const relative =
+    ageMin < 1 ? "gerade eben" : ageMin < 60 ? `vor ${ageMin} Min.` : `vor ${Math.round(ageMin / 60)} Std.`;
+  el.textContent = `${new Date(newest).toLocaleString("de-DE")} (${relative})`;
+  el.className = ageMin > 240 ? "error" : "";
+}
+
 async function init() {
   [watchlist, regions, latestPrices] = await Promise.all([
     api("/api/watchlist"),
@@ -194,8 +212,31 @@ async function init() {
   ]);
   renderWatchlist();
   renderRuleFormOptions();
+  renderLastUpdated();
   await renderRules();
 }
+
+document.getElementById("trigger-collect").addEventListener("click", async () => {
+  const btn = document.getElementById("trigger-collect");
+  const status = document.getElementById("collect-status");
+  btn.disabled = true;
+  status.className = "price-hint";
+  status.textContent = "Läuft… (ruft ESI live ab, kann ein paar Sekunden dauern)";
+  try {
+    const result = await api("/api/collect", { method: "POST" });
+    status.textContent =
+      result.triggered === null
+        ? "Fertig, Ergebnis unklar — siehe Server-Log."
+        : `Fertig — ${result.triggered} Alarm(e) ausgelöst.`;
+    status.className = "price-hint ok";
+    await init();
+  } catch (err) {
+    status.textContent = err.message;
+    status.className = "price-hint error";
+  } finally {
+    btn.disabled = false;
+  }
+});
 
 // --- Settings (.env) ----------------------------------------------------
 

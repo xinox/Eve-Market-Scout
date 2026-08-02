@@ -75,7 +75,15 @@ async function main() {
 
   const discordWebhook = process.env.DISCORD_WEBHOOK_URL;
   if (discordWebhook && triggered.length > 0) {
-    await sendDiscordAlerts(discordWebhook, triggered);
+    const itemNames = Object.fromEntries(
+      watchlist.filter((w) => w.name).map((w) => [w.typeId, w.name as string])
+    );
+    const regionNames = Object.fromEntries(regions.map((r) => [r.regionId, r.name]));
+    await sendDiscordAlerts(discordWebhook, triggered, {
+      itemNames,
+      regionNames,
+      appUrl: process.env.APP_URL ?? "http://localhost:4310",
+    });
     logger.info("Sent triggered alerts to Discord", { count: triggered.length });
   } else if (triggered.length > 0) {
     logger.warn("Alerts triggered but DISCORD_WEBHOOK_URL is not set — nothing was sent", {

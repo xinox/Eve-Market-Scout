@@ -24,6 +24,10 @@ export function aggregateOrders(
       buyVolume: number;
       sellOrderCount: number;
       buyOrderCount: number;
+      bestSellLocationId: number | null;
+      bestSellSystemId: number | null;
+      bestBuyLocationId: number | null;
+      bestBuySystemId: number | null;
     }
   >();
 
@@ -37,6 +41,10 @@ export function aggregateOrders(
       buyVolume: 0,
       sellOrderCount: 0,
       buyOrderCount: 0,
+      bestSellLocationId: null,
+      bestSellSystemId: null,
+      bestBuyLocationId: null,
+      bestBuySystemId: null,
     };
 
     if (order.is_buy_order) {
@@ -44,12 +52,16 @@ export function aggregateOrders(
       entry.buyOrderCount += 1;
       if (entry.bestBuy === null || order.price > entry.bestBuy) {
         entry.bestBuy = order.price;
+        entry.bestBuyLocationId = order.location_id;
+        entry.bestBuySystemId = order.system_id;
       }
     } else {
       entry.sellVolume += order.volume_remain;
       entry.sellOrderCount += 1;
       if (entry.bestSell === null || order.price < entry.bestSell) {
         entry.bestSell = order.price;
+        entry.bestSellLocationId = order.location_id;
+        entry.bestSellSystemId = order.system_id;
       }
     }
 
@@ -66,5 +78,9 @@ export function aggregateOrders(
     buyVolume: e.buyVolume,
     sellOrderCount: e.sellOrderCount,
     buyOrderCount: e.buyOrderCount,
+    bestSellLocationId: e.bestSellLocationId,
+    bestSellSystemId: e.bestSellSystemId,
+    bestBuyLocationId: e.bestBuyLocationId,
+    bestBuySystemId: e.bestBuySystemId,
   }));
 }

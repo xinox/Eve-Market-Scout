@@ -25,6 +25,10 @@ interface SnapshotRow {
   buyVolume: number;
   sellOrderCount: number;
   buyOrderCount: number;
+  bestSellLocationId?: number | null;
+  bestSellSystemId?: number | null;
+  bestBuyLocationId?: number | null;
+  bestBuySystemId?: number | null;
 }
 
 interface StructureSnapshotRow {
@@ -61,8 +65,9 @@ async function handleRegionIngest(request: Request, env: Env): Promise<Response>
   // one round-trip per row against the free tier's 5M-writes/month cap.
   const stmt = env.DB.prepare(
     `INSERT INTO market_snapshot
-      (region_id, type_id, ts, best_sell, best_buy, sell_volume, buy_volume, sell_order_count, buy_order_count)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      (region_id, type_id, ts, best_sell, best_buy, sell_volume, buy_volume, sell_order_count, buy_order_count,
+       best_sell_location_id, best_sell_system_id, best_buy_location_id, best_buy_system_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   );
   await env.DB.batch(
     batch.rows.map((r) =>
@@ -75,7 +80,11 @@ async function handleRegionIngest(request: Request, env: Env): Promise<Response>
         r.sellVolume,
         r.buyVolume,
         r.sellOrderCount,
-        r.buyOrderCount
+        r.buyOrderCount,
+        r.bestSellLocationId ?? null,
+        r.bestSellSystemId ?? null,
+        r.bestBuyLocationId ?? null,
+        r.bestBuySystemId ?? null
       )
     )
   );

@@ -60,3 +60,16 @@ test("keeps separate rows per type_id", () => {
 test("returns empty array for empty input", () => {
   assert.deepEqual(aggregateOrders([], "2026-07-26T00:00:00Z"), []);
 });
+
+test("tracks the location/system of the order that set bestSell/bestBuy", () => {
+  const orders = [
+    makeOrder({ order_id: 1, price: 5.2, location_id: 111, system_id: 222 }),
+    makeOrder({ order_id: 2, price: 4.9, location_id: 333, system_id: 444 }),
+    makeOrder({ order_id: 3, is_buy_order: true, price: 4.0, location_id: 555, system_id: 666 }),
+  ];
+  const rows = aggregateOrders(orders, "2026-07-26T00:00:00Z");
+  assert.equal(rows[0].bestSellLocationId, 333);
+  assert.equal(rows[0].bestSellSystemId, 444);
+  assert.equal(rows[0].bestBuyLocationId, 555);
+  assert.equal(rows[0].bestBuySystemId, 666);
+});

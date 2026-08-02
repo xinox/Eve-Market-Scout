@@ -75,6 +75,12 @@ export interface MarketSnapshotRow {
   buyVolume: number;
   sellOrderCount: number;
   buyOrderCount: number;
+  /** Station/structure id of the order that set bestSell, if any — lets
+   * alerts say *where* the best price was found, not just which region. */
+  bestSellLocationId?: number | null;
+  bestSellSystemId?: number | null;
+  bestBuyLocationId?: number | null;
+  bestBuySystemId?: number | null;
 }
 
 export interface SnapshotBatch {

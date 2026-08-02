@@ -14,6 +14,20 @@
 
   <main>
     <section>
+      <div class="row wrap" style="justify-content: space-between; align-items: center; margin-bottom: 0;">
+        <div>
+          <strong>Marktdaten zuletzt aktualisiert:</strong>
+          <span id="last-updated">–</span>
+        </div>
+        <div class="row" style="margin-bottom: 0;">
+          <button id="trigger-collect" type="button">Alarme jetzt auslösen</button>
+          <span id="collect-status" class="price-hint"></span>
+        </div>
+      </div>
+      <p class="muted" style="margin-bottom: 0;">Startet sofort einen echten Collector-Lauf (ruft ESI live ab und prüft alle Alert-Regeln) — keine Simulation.</p>
+    </section>
+
+    <section>
       <h2>Einstellungen (.env)</h2>
       <p class="muted">Landet in der lokalen <code>.env</code> (nicht in Git). Discord-Webhook eintragen, um Alarme wirklich zugestellt zu bekommen.</p>
       <div class="row wrap">
@@ -51,7 +65,15 @@
           <option value="discord">Nur Discord</option>
           <option value="browser">Nur Browser</option>
         </select>
-        <input type="number" id="rule-cooldown" placeholder="Cooldown (Min.)" value="240" />
+        <label class="field-label" for="rule-cooldown">
+          Cooldown (Min.)
+          <input
+            type="number"
+            id="rule-cooldown"
+            value="240"
+            title="Mindestabstand zwischen zwei Alarmen derselben Regel, damit du nicht bei jedem Collector-Lauf erneut benachrichtigt wirst."
+          />
+        </label>
         <button type="submit">Alarm anlegen</button>
       </form>
       <table id="rules-table">
