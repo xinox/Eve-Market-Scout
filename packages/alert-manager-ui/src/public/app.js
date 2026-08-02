@@ -4,6 +4,7 @@
 let watchlist = [];
 let regions = [];
 let latestPrices = [];
+let globalPrices = {};
 
 async function api(path, opts) {
   const res = await fetch(path, opts);
@@ -19,11 +20,18 @@ async function api(path, opts) {
  * "gut verkaufen" rules), plus whether the rule would fire right now. */
 function currentPriceCell(rule) {
   const row = latestPrices.find((r) => r.regionId === rule.regionId && r.typeId === rule.typeId);
-  if (!row) return '<span class="price-hint">keine Daten (noch nicht abgerufen)</span>';
-
   const isSell = rule.direction === "sell_at_or_below";
-  const relevant = isSell ? row.bestSell : row.bestBuy;
-  if (relevant == null) return '<span class="price-hint">keine Order gefunden</span>';
+  const relevant = row ? (isSell ? row.bestSell : row.bestBuy) : null;
+
+  if (relevant == null) {
+    // No order-book price (either never collected, or the item just has no
+    // open orders in this region right now — e.g. PLEX, which stopped
+    // trading through normal region orders). Fall back to ESI's global,
+    // region-less average price so there's still *something* to look at.
+    const global = globalPrices[rule.typeId];
+    if (global == null) return '<span class="price-hint">keine Daten (noch nicht abgerufen)</span>';
+    return `${global.toLocaleString("de-DE")} ISK<div class="price-hint">Ø globaler Preis — keine Orders in dieser Region</div>`;
+  }
 
   const met = isSell ? relevant <= rule.thresholdIsk : relevant >= rule.thresholdIsk;
   const label = `${relevant.toLocaleString("de-DE")} ISK`;
@@ -215,10 +223,11 @@ function renderLastUpdated() {
 }
 
 async function init() {
-  [watchlist, regions, latestPrices] = await Promise.all([
+  [watchlist, regions, latestPrices, globalPrices] = await Promise.all([
     api("/api/watchlist"),
     api("/api/regions"),
     api("/api/latest-prices"),
+    api("/api/global-prices"),
   ]);
   renderWatchlist();
   renderRuleFormOptions();

@@ -103,6 +103,28 @@ function writeEnvSetting(key: SettableEnvKey, value: string): void {
   writeFileSync(ENV_PATH, nextLines.join("\n").replace(/\n*$/, "\n"), "utf-8");
 }
 
+/** Fallback for items with no live order book at all (e.g. PLEX, which
+ * stopped trading through the normal region order book — see ESI's
+ * /markets/{region}/history/ for it, which just goes silent after a point).
+ * ESI's /markets/prices/ endpoint gives a global, region-less average price
+ * for every type_id, updated daily. Cached in-memory since it's a ~16k-item
+ * payload and doesn't change within a session. */
+let globalPricesCache: { data: Map<number, number>; fetchedAt: number } | null = null;
+const GLOBAL_PRICES_TTL_MS = 15 * 60 * 1000;
+
+async function getGlobalPrices(): Promise<Map<number, number>> {
+  if (globalPricesCache && Date.now() - globalPricesCache.fetchedAt < GLOBAL_PRICES_TTL_MS) {
+    return globalPricesCache.data;
+  }
+  const res = await fetch("https://esi.evetech.net/latest/markets/prices/", {
+    headers: { "User-Agent": process.env.ESI_USER_AGENT ?? "eve-market-scout/0.1" },
+  });
+  const rows = (await res.json()) as Array<{ type_id: number; average_price?: number }>;
+  const data = new Map(rows.filter((r) => r.average_price != null).map((r) => [r.type_id, r.average_price as number]));
+  globalPricesCache = { data, fetchedAt: Date.now() };
+  return data;
+}
+
 const MIME: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
@@ -305,6 +327,15 @@ const server = createServer(async (req, res) => {
 
     if (url.pathname === "/api/latest-prices" && req.method === "GET") {
       return sendJson(res, 200, loadLatestSnapshotRows());
+    }
+
+    if (url.pathname === "/api/global-prices" && req.method === "GET") {
+      const watchlistIds = loadWatchlist().map((w) => w.typeId);
+      const allPrices = await getGlobalPrices();
+      const filtered = Object.fromEntries(
+        watchlistIds.filter((id) => allPrices.has(id)).map((id) => [id, allPrices.get(id)])
+      );
+      return sendJson(res, 200, filtered);
     }
 
     if (url.pathname === "/api/collect" && req.method === "POST") {
