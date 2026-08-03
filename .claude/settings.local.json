@@ -10,7 +10,11 @@
       "Bash(node --env-file-if-exists=.env -e \"console.log\\(process.env.DISCORD_WEBHOOK_URL ? 'set \\(' + process.env.DISCORD_WEBHOOK_URL.length + ' chars\\)' : 'EMPTY'\\)\")",
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
-      "Bash(git rm *)"
+      "Bash(git rm *)",
+      "Bash(npm test *)",
+      "Bash(node --env-file-if-exists=.env -e ' *)",
+      "Bash(node --env-file-if-exists=.env --import tsx _debug_test.mjs)",
+      "Bash(curl -s -D - \"https://esi.evetech.net/latest/markets/10000002/orders/?order_type=all&type_id=44992&page=1\" -o /tmp/plex.json)"
     ]
   }
 }
