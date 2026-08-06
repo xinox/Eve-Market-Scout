@@ -5,7 +5,7 @@ import { ESI_BASE_URL, esiFetch, esiFetchAllPages, type EsiFetchOptions } from "
  * All public order book entries for a region (buy + sell, all types unless
  * `typeId` is given). This endpoint is server-side cached by ESI for 300s —
  * polling faster than every 5 minutes returns identical data, so our
- * 30-minute cadence is still extremely conservative and well inside any budget.
+ * hourly cadence is still extremely conservative and well inside any budget.
  *
  * Docs: https://esi.evetech.net/ui/#/Market/get_markets_region_id_orders
  */

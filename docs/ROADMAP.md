@@ -12,7 +12,9 @@ scaffolded in this repo.
 - [x] `notifiers-discord`: webhook sender
 - [x] `MarketStore` abstraction: `JsonFileStore` (local) / `HttpIngestStore` (prod)
 - [x] `ingest-api`: Cloudflare Worker + D1 schema (needs your Cloudflare account to activate)
-- [x] GitHub Actions: scheduled collector (every 30min) + CI typecheck
+- [x] GitHub Actions: scheduled collector (hourly — GitHub's `schedule`
+      trigger drops most sub-hourly runs in practice, see
+      docs/ARCHITECTURE.md) + CI typecheck
 - [x] `trade-analyzer`: profit/margin math + single-hub and cross-hub
       ranking, ported and tested from a prior EVE trading project
 - [x] `X-Compatibility-Date` header on every ESI request (found missing

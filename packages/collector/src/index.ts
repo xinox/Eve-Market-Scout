@@ -22,7 +22,7 @@ const COOLDOWN_STATE_FILE = path.join("data", "alert-cooldowns.json");
 /** Per-rule "last triggered at" state, persisted to a small local JSON file
  * so cooldownMinutes actually holds across separate collector runs. Without
  * this, evaluateAlerts starts fresh every run and cooldowns are a no-op —
- * fine at a 4h cadence where you'd barely notice, but at 30min a stuck
+ * fine at a 4h cadence where you'd barely notice, but at hourly a stuck
  * threshold would otherwise re-fire every single run.
  * In CI (GitHub Actions), the workflow restores/saves this file via
  * actions/cache across runs — see .github/workflows/collect-market-data.yml. */

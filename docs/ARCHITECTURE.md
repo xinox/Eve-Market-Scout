@@ -3,7 +3,7 @@
 ## Data flow
 
 ```
-GitHub Actions (cron, every 30min)
+GitHub Actions (cron, hourly)
         │
         ▼
   packages/collector
@@ -51,6 +51,20 @@ after 60 days of zero repo activity. Any commit, or a manual
 `workflow_dispatch` run, resets that clock — unlikely to matter while
 actively developing, worth remembering if the project goes dormant.
 
+Another caveat, found in production rather than the docs: GitHub's
+`schedule` trigger is best-effort, and for cadences faster than hourly it
+drops far more runs than it executes. We tried `*/30 * * * *` and measured
+actual gaps of 60-200 minutes between runs over a day, not 30 — GitHub
+queues scheduled workflows and will skip/delay them under load, which in
+practice hits noticeably below hourly. Settled on hourly (`7 * * * *`,
+offset off the top of the hour to dodge GitHub's documented high-load
+window there) as the fastest cadence GitHub Actions actually delivers
+reliably. If you need true 30min-or-faster cadence, the fix is to stop
+relying on GitHub's scheduler entirely: run the collector logic as an HTTP
+endpoint (e.g. a route on the `ingest-api` Worker) and have an external,
+minute-precise pinger (Vercel Cron on a paid plan, cron-job.org, etc.)
+call it — decouples the trigger from any single platform's scheduler.
+
 ## Why D1 over KV or a full Postgres
 
 - **KV** is a poor fit for time-series rows with range queries (get history
@@ -68,7 +82,7 @@ actively developing, worth remembering if the project goes dormant.
 ## Why aggregate-only storage, not every raw order
 
 A region's full order book can be tens of thousands of orders across all
-types. Storing every order every 30 minutes would burn through D1's free tier
+types. Storing every order every hour would burn through D1's free tier
 fast and mostly store noise (99% of a station's order book is irrelevant to
 "what's the best price right now"). `aggregate.ts` collapses this to one row
 per (region, type) per run: best sell, best buy, total volume on each side.
