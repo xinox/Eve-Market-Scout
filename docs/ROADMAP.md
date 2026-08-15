@@ -12,8 +12,8 @@ scaffolded in this repo.
 - [x] `notifiers-discord`: webhook sender
 - [x] `MarketStore` abstraction: `JsonFileStore` (local) / `HttpIngestStore` (prod)
 - [x] `ingest-api`: Cloudflare Worker + D1 schema (needs your Cloudflare account to activate)
-- [x] GitHub Actions: scheduled collector (hourly — GitHub's `schedule`
-      trigger drops most sub-hourly runs in practice, see
+- [x] GitHub Actions: scheduled collector (every 30 minutes; GitHub's
+      `schedule` trigger remains best-effort, see
       docs/ARCHITECTURE.md) + CI typecheck
 - [x] `trade-analyzer`: profit/margin math + single-hub and cross-hub
       ranking, ported and tested from a prior EVE trading project
@@ -51,6 +51,11 @@ threshold.
    once polling works — don't start with it, it's meaningfully more complex
    for the same user-visible result at MVP stage.
 
+**Deployment update:** the public latest/history routes, D1-backed alert
+management and the React dashboard are implemented in the same Cloudflare
+Worker deployment. Browser notifications use 60-second polling while the
+dashboard is open; background Web Push remains optional follow-up work.
+
 **Milestone**: "Ich bekomme eine Discord-Nachricht (und sehe eine
 Browser-Benachrichtigung), wenn PLEX in Jita unter X ISK fällt" — running
 unattended on GitHub Actions, costing nothing. If you set up
@@ -79,8 +84,10 @@ liquidity warnings). What's left is wiring it up, not designing it.
    currently only `minTradableQuantity` (current order-book depth) is
    implemented; historical average volume is a better signal for "is this
    actually a real, repeatable opportunity" vs. a one-off large order.
-4. **Expose it via `query-api`**: `GET /trades/top?region=...`.
-5. **Dashboard view**: "Top trades right now" list in `apps/web`
+4. **Expose it via `query-api`**: the dashboard currently calculates its
+   fee-adjusted ranking from the public latest-price response; a dedicated
+   server route remains optional.
+5. **Dashboard view — done**: "Top trades right now" list in `apps/web`
    (see `apps/web/README.md` for the carried-over design direction),
    optionally its own alert type ("notify me when a >20% margin trade
    appears"). With `packages/eve-sso` set up, this can include structure

@@ -1,40 +1,18 @@
-# apps/web (Phase 1.5 — not yet implemented)
+# Dashboard
 
-The dashboard. Reads from a `query-api` Worker (a second set of routes
-alongside `ingest-api`, or its own Worker — decide when you get here) and,
-once available, from `@eve-market-scout/trade-analyzer` for the "top trades"
-view.
+Vite/React-Dashboard für aktuelle Marktpreise, gebührenbereinigte Handelsrouten, Preisverläufe und Alarmverwaltung.
 
-Suggested stack given the rest of the repo: plain Vite + React + TypeScript,
-deployed to Cloudflare Pages (keeps everything on one platform) or Vercel
-(you already know it well). Either is a static build with client-side
-fetches to the query API — no server-side rendering needed for v1.
+```bash
+npm run dev:web
+npm run build:web
+```
 
-## Design direction (carried over from a prior EVE trading project)
+`npm run dev:web` startet Frontend und lokalen Worker gemeinsam, migriert die lokale D1-Datenbank und verbindet `/api` automatisch. Der Admin-Schlüssel ist ausschließlich in diesem lokalen Modus optional.
 
-- **Audience**: station traders who want a fast, dense decision tool — buy
-  cheap here, sell for a profit there. They value speed and trustworthy
-  numbers over novelty.
-- **Tone**: tactical, business, "market terminal for capsuleers" — not a
-  game UI. Avoid playful/arcade styling and generic glowing cyberpunk
-  cliches; lean into restrained sci-fi + operator-console mood instead.
-- **Layout**: dense tabular views are first-class, not an afterthought —
-  compact controls, strong information hierarchy, comparison panels that
-  feel intentional rather than bolted on.
-- **Theming**: support both dark and light modes, dark-bluish and
-  structured in either, preserving contrast for long scanning sessions.
-- Every layout decision should answer: does this help someone judge route
-  viability, margin, and demand faster?
+Im Cloudflare-Deployment werden Frontend und API über denselben Worker ausgeliefert; dafür ist keine Frontend-Umgebungsvariable nötig. Für einen getrennten Host kann `VITE_API_BASE_URL` auf die öffentliche Worker-Origin gesetzt werden. Der Worker müsste dann zusätzlich CORS erlauben.
 
-## MVP scope
+Lokale Entwicklung zeigt bei einer leeren oder nicht erreichbaren API klar markierte Demo-Daten. Ein Production-Build zeigt niemals Demo-Daten.
 
-- Table of watchlist items with latest best sell/buy per hub.
-- Price history chart per item (line chart, data from `market_snapshot`).
-- "Top trades right now" list, powered by
-  `rankSingleHubOpportunities` / `rankCrossHubOpportunities` from
-  `@eve-market-scout/trade-analyzer` (Phase 2).
-- List of currently active alert rules + a manual "test alert" button.
-- Simple polling (every 60s) for newly triggered alerts as the first
-  "browser alert" mechanism — real Web Push (VAPID + service worker,
-  `push_subscriptions` table already in the schema) is a clean follow-up
-  once polling works.
+Online-Alarmregeln liegen in D1. Anlegen und Löschen erfordert den beim Deploy gesetzten `INGEST_SECRET`; er wird nur im Arbeitsspeicher des geöffneten Tabs gehalten. Discord wird vom Collector bedient. Browser-Benachrichtigungen werden im geöffneten Dashboard alle 60 Sekunden geprüft.
+
+Der Items-Tab verwaltet die gemeinsame D1-Watchlist. Suchvorschläge kommen aus einem kompakten, mitgelieferten Marktkatalog. `npm run catalog:update` aktualisiert ihn aus dem [EVE Ref Reference-Data-Datensatz](https://docs.everef.net/datasets/reference-data.html); Rechte an EVE-Daten und -Namen verbleiben bei CCP beziehungsweise den jeweiligen Rechteinhabern.

@@ -5,21 +5,31 @@
   "description": "Modular EVE Online market intelligence: collection, alerts, trade analysis, historical analytics.",
   "type": "module",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ],
   "scripts": {
     "collect": "node --env-file-if-exists=.env --import tsx packages/collector/src/index.ts",
     "collect:structures": "node --env-file-if-exists=.env --import tsx packages/collector/src/structureIndex.ts",
+    "catalog:update": "node scripts/update-item-catalog.mjs",
     "manage": "node --env-file-if-exists=.env --import tsx packages/alert-manager-ui/src/server.ts",
     "typecheck": "tsc --build --pretty",
-    "test": "node --import tsx --test packages/*/src/**/*.test.ts"
+    "test": "node --import tsx --test packages/*/src/**/*.test.ts",
+    "dev:frontend": "npm run dev --workspace @eve-market-scout/web",
+    "dev:worker": "npm run db:migrate:local --workspace @eve-market-scout/ingest-api && npm run dev --workspace @eve-market-scout/ingest-api -- --port 8787 --var LOCAL_DEV:true",
+    "dev:web": "concurrently -k -n worker,web \"npm:dev:worker\" \"npm:dev:frontend\"",
+    "build:web": "npm run build --workspace @eve-market-scout/web",
+    "check:worker": "npm run check --workspace @eve-market-scout/ingest-api",
+    "verify:deploy": "npm test && npm run typecheck && npm run build:web && npm run check:worker",
+    "deploy:cloudflare": "npm run build:web && npm run db:migrate --workspace @eve-market-scout/ingest-api && npm run deploy --workspace @eve-market-scout/ingest-api"
   },
   "devDependencies": {
+    "concurrently": "^9.2.1",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0",
     "@types/node": "^22.7.0"
   },
   "engines": {
-    "node": ">=20.12.0"
+    "node": ">=20.19.0"
   }
 }

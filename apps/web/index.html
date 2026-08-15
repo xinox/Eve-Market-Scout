@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="EVE Online Marktpreise und Handelsrouten vergleichen." />
+    <meta name="theme-color" content="#141b20" />
+    <script>
+      try {
+        const saved = localStorage.getItem("eve-scout-theme");
+        document.documentElement.dataset.theme = saved || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+      } catch {}
+    </script>
+    <title>EVE Market Scout</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

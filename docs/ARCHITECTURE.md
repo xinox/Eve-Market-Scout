@@ -3,7 +3,7 @@
 ## Data flow
 
 ```
-GitHub Actions (cron, hourly)
+GitHub Actions (cron, every 30 minutes)
         │
         ▼
   packages/collector
@@ -42,24 +42,19 @@ Checked as of July 2026:
 | GitHub Actions | **Unlimited free minutes on public repos**, 6-hour job timeout, real Node.js environment, first-class cron syntax. |
 
 So: GitHub Actions owns the "fetch ESI, aggregate, alert" job. Cloudflare
-Workers own the always-on read API (`ingest-api` for writes, a future
-`query-api` for reads) where the 10ms limit is a non-issue for simple D1
-queries.
+Workers own the always-on read API, authenticated ingest routes and static
+dashboard assets in one deployment. The 10ms limit is a non-issue for the
+small D1 queries used here.
 
 One caveat: GitHub disables scheduled workflows on a public repo automatically
 after 60 days of zero repo activity. Any commit, or a manual
 `workflow_dispatch` run, resets that clock — unlikely to matter while
 actively developing, worth remembering if the project goes dormant.
 
-Another caveat, found in production rather than the docs: GitHub's
-`schedule` trigger is best-effort, and for cadences faster than hourly it
-drops far more runs than it executes. We tried `*/30 * * * *` and measured
-actual gaps of 60-200 minutes between runs over a day, not 30 — GitHub
-queues scheduled workflows and will skip/delay them under load, which in
-practice hits noticeably below hourly. Settled on hourly (`7 * * * *`,
-offset off the top of the hour to dodge GitHub's documented high-load
-window there) as the fastest cadence GitHub Actions actually delivers
-reliably. If you need true 30min-or-faster cadence, the fix is to stop
+GitHub's `schedule` trigger is best-effort and can delay or skip runs under
+load. The configured 30-minute cadence (`7,37 * * * *`) is offset from the
+top of the hour to reduce that risk. If minute-precise execution becomes
+necessary, the fix is to stop
 relying on GitHub's scheduler entirely: run the collector logic as an HTTP
 endpoint (e.g. a route on the `ingest-api` Worker) and have an external,
 minute-precise pinger (Vercel Cron on a paid plan, cron-job.org, etc.)
@@ -69,8 +64,8 @@ call it — decouples the trigger from any single platform's scheduler.
 
 - **KV** is a poor fit for time-series rows with range queries (get history
   for type X over the last 30 days) — it's a flat key-value store.
-- **D1** (SQLite-based) gives real SQL, 5 GB storage + 5M reads/writes a
-  month free, and integrates natively with the Worker that already needs to
+- **D1** (SQLite-based) gives real SQL, 5 GB storage, 5M rows read per day
+  and 100k rows written per day on Free, and integrates natively with the Worker that already needs to
   exist for ingestion. At the data volumes here (a handful of hubs, a
   watchlist rather than all ~8000 types), this is nowhere near the limit for
   a long time.
