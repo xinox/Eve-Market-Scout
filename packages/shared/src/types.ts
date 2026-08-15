@@ -17,6 +17,10 @@ export interface WatchlistItem {
   name?: string;
 }
 
+export interface WatchlistResponse {
+  rows: WatchlistItem[];
+}
+
 export type AlertDirection =
   /** Fire when the best sell order is at or below the threshold (cheap buy). */
   | "sell_at_or_below"
@@ -34,6 +38,27 @@ export interface AlertRule {
   channel: AlertChannel;
   /** Cooldown in minutes to avoid spamming the same alert every collector run. */
   cooldownMinutes?: number;
+}
+
+export interface AlertRulesResponse {
+  rows: AlertRule[];
+}
+
+export interface RecentAlert {
+  id: number;
+  ruleId: string;
+  regionId: number;
+  typeId: number;
+  direction: AlertDirection;
+  thresholdIsk: number;
+  channel: AlertChannel;
+  triggeredAt: string;
+  bestSell: number | null;
+  bestBuy: number | null;
+}
+
+export interface RecentAlertsResponse {
+  rows: RecentAlert[];
 }
 
 /** Raw order shape as returned by ESI's /markets/{region_id}/orders/ endpoint. */
@@ -91,6 +116,19 @@ export interface MarketSnapshotRow {
 export interface SnapshotBatch {
   runId: string;
   timestamp: string;
+  rows: MarketSnapshotRow[];
+}
+
+/** Public query API payload used by the dashboard. */
+export interface LatestMarketResponse {
+  generatedAt: string;
+  rows: MarketSnapshotRow[];
+}
+
+/** Historical points for one item in one region, newest first. */
+export interface MarketHistoryResponse {
+  regionId: number;
+  typeId: number;
   rows: MarketSnapshotRow[];
 }
 

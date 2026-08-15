@@ -3,5 +3,6 @@
   { "regionId": 10000043, "name": "Domain (Amarr)" },
   { "regionId": 10000032, "name": "Sinq Laison (Dodixie)" },
   { "regionId": 10000030, "name": "Heimatar (Rens)" },
-  { "regionId": 10000042, "name": "Metropolis (Hek)" }
+  { "regionId": 10000042, "name": "Metropolis (Hek)" },
+  { "regionId": 19000001, "name": "Globaler PLEX-Markt" }
 ]

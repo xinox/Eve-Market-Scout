@@ -1,13 +1,23 @@
 name = "eve-market-scout-ingest"
 main = "src/index.ts"
-compatibility_date = "2026-07-01"
+compatibility_date = "2026-08-15"
 
-# Run `wrangler d1 create eve-market-scout` once, then paste the returned
-# database_id below. See README.md in this package for the full walkthrough.
+[vars]
+GITHUB_REPOSITORY = "xinox/Eve-Market-Scout"
+GITHUB_REF = "main"
+
+[assets]
+directory = "../../apps/web/dist"
+not_found_handling = "single-page-application"
+run_worker_first = ["/api/*", "/ingest*", "/health"]
+
+# Wrangler creates the D1 database on the first interactive deploy and writes
+# its id back into this file. Commit that generated id for CI deployments.
 [[d1_databases]]
 binding = "DB"
 database_name = "eve-market-scout"
-database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+database_id = "dcdeebba-979c-4cb5-85d4-161c60eddbd0"
+migrations_dir = "../../db/migrations"
 
 # Set with: wrangler secret put INGEST_SECRET
 # (must match INGEST_API_SECRET in your GitHub Actions secrets)

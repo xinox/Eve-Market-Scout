@@ -6,8 +6,11 @@ import {
   loadWatchlist,
   loadAlertRules,
   logger,
+  type AlertRule,
   type SnapshotBatch,
   type MarketSnapshotRow,
+  type TriggeredAlert,
+  type WatchlistItem,
 } from "@eve-market-scout/shared";
 import { fetchRegionOrders, fetchGlobalPrices } from "@eve-market-scout/esi-client";
 import { evaluateAlerts } from "@eve-market-scout/alert-engine";
@@ -18,6 +21,8 @@ import { JsonFileStore } from "./store/jsonFileStore.js";
 import { HttpIngestStore } from "./store/httpIngestStore.js";
 
 const COOLDOWN_STATE_FILE = path.join("data", "alert-cooldowns.json");
+const GLOBAL_PLEX_REGION_ID = 19_000_001;
+const PLEX_TYPE_ID = 44_992;
 
 /** Per-rule "last triggered at" state, persisted to a small local JSON file
  * so cooldownMinutes actually holds across separate collector runs. Without
@@ -57,11 +62,62 @@ function buildStore(): MarketStore {
   return new JsonFileStore();
 }
 
+function ingestApiUrl(path: "alert-rules" | "alerts" | "watchlist"): string {
+  const ingestUrl = process.env.INGEST_API_URL;
+  if (!ingestUrl) throw new Error("INGEST_API_URL is required for remote alert rules");
+  return `${ingestUrl.replace(/\/+$/, "")}/${path}`;
+}
+
+async function loadRuntimeAlertRules(): Promise<AlertRule[]> {
+  if ((process.env.STORAGE_MODE ?? "json") !== "http") return loadAlertRules();
+  const secret = process.env.INGEST_API_SECRET;
+  if (!secret) throw new Error("INGEST_API_SECRET is required for remote alert rules");
+  const response = await fetch(ingestApiUrl("alert-rules"), {
+    headers: { "X-Ingest-Secret": secret },
+  });
+  if (!response.ok) {
+    throw new Error(`Could not load remote alert rules: ${response.status} ${await response.text()}`);
+  }
+  const payload = await response.json() as { rows: AlertRule[] };
+  return payload.rows;
+}
+
+async function loadRuntimeWatchlist(): Promise<WatchlistItem[]> {
+  if ((process.env.STORAGE_MODE ?? "json") !== "http") return loadWatchlist();
+  const secret = process.env.INGEST_API_SECRET;
+  if (!secret) throw new Error("INGEST_API_SECRET is required for remote watchlist access");
+  const response = await fetch(ingestApiUrl("watchlist"), {
+    headers: { "X-Ingest-Secret": secret },
+  });
+  if (!response.ok) {
+    throw new Error(`Could not load remote watchlist: ${response.status} ${await response.text()}`);
+  }
+  const payload = await response.json() as { rows: WatchlistItem[] };
+  return payload.rows;
+}
+
+async function saveTriggeredAlerts(alerts: TriggeredAlert[]): Promise<void> {
+  if ((process.env.STORAGE_MODE ?? "json") !== "http" || alerts.length === 0) return;
+  const secret = process.env.INGEST_API_SECRET;
+  if (!secret) throw new Error("INGEST_API_SECRET is required for browser alert delivery");
+  const response = await fetch(ingestApiUrl("alerts"), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Ingest-Secret": secret,
+    },
+    body: JSON.stringify({ alerts }),
+  });
+  if (!response.ok) {
+    throw new Error(`Could not persist triggered alerts: ${response.status} ${await response.text()}`);
+  }
+}
+
 async function main() {
   const runId = randomUUID();
   const timestamp = new Date().toISOString();
   const regions = loadRegions();
-  const watchlist = loadWatchlist();
+  const watchlist = await loadRuntimeWatchlist();
   const watchlistIds = new Set(watchlist.map((w) => w.typeId));
 
   if (regions.length === 0) {
@@ -78,8 +134,12 @@ async function main() {
   const allRows: MarketSnapshotRow[] = [];
 
   for (const region of regions) {
+    if (region.regionId === GLOBAL_PLEX_REGION_ID && !watchlistIds.has(PLEX_TYPE_ID)) continue;
     logger.info("Fetching region orders", { region: region.name });
-    const orders = await fetchRegionOrders(region.regionId);
+    const orders = await fetchRegionOrders(
+      region.regionId,
+      region.regionId === GLOBAL_PLEX_REGION_ID ? { typeId: PLEX_TYPE_ID } : {}
+    );
 
     // MVP scope control: only aggregate items on the watchlist. Drop this
     // filter (or make it configurable) once you're ready to index everything
@@ -96,7 +156,7 @@ async function main() {
   const store = buildStore();
   await store.saveSnapshot(batch);
 
-  const rules = loadAlertRules();
+  const rules = await loadRuntimeAlertRules();
 
   // Some watchlist items (PLEX being the practical case) have stopped
   // trading through the normal region order book entirely, so they never
@@ -138,23 +198,27 @@ async function main() {
   if (triggered.length > 0) {
     for (const t of triggered) cooldownState.set(t.rule.id, new Date(t.triggeredAt));
     saveCooldownState(cooldownState);
+    await saveTriggeredAlerts(triggered);
   }
 
   const discordWebhook = process.env.DISCORD_WEBHOOK_URL;
-  if (discordWebhook && triggered.length > 0) {
+  const discordAlerts = triggered.filter(
+    (alert) => alert.rule.channel === "discord" || alert.rule.channel === "both"
+  );
+  if (discordWebhook && discordAlerts.length > 0) {
     const itemNames = Object.fromEntries(
       watchlist.filter((w) => w.name).map((w) => [w.typeId, w.name as string])
     );
     const regionNames = Object.fromEntries(regions.map((r) => [r.regionId, r.name]));
-    await sendDiscordAlerts(discordWebhook, triggered, {
+    await sendDiscordAlerts(discordWebhook, discordAlerts, {
       itemNames,
       regionNames,
       appUrl: process.env.APP_URL ?? "http://localhost:4310",
     });
-    logger.info("Sent triggered alerts to Discord", { count: triggered.length });
-  } else if (triggered.length > 0) {
+    logger.info("Sent triggered alerts to Discord", { count: discordAlerts.length });
+  } else if (discordAlerts.length > 0) {
     logger.warn("Alerts triggered but DISCORD_WEBHOOK_URL is not set — nothing was sent", {
-      count: triggered.length,
+      count: discordAlerts.length,
     });
   }
 

@@ -5,10 +5,17 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "db:migrate": "wrangler d1 execute eve-market-scout --file=../../db/migrations/0001_init.sql && wrangler d1 execute eve-market-scout --file=../../db/migrations/0002_structures.sql && wrangler d1 execute eve-market-scout --file=../../db/migrations/0003_market_locations.sql"
+    "check": "tsc --noEmit && wrangler deploy --dry-run",
+    "db:migrate": "wrangler d1 migrations apply DB --remote",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "secret:set": "wrangler secret put INGEST_SECRET",
+    "secret:set:github": "wrangler secret put GITHUB_ACTIONS_TOKEN"
+  },
+  "dependencies": {
+    "@eve-market-scout/shared": "0.1.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250101.0",
-    "wrangler": "^4.114.0"
+    "wrangler": "^4.123.0"
   }
 }

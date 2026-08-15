@@ -13,8 +13,8 @@ historical analytics on top — each as an independently swappable module.
 
 ## Status
 
-Phase 1 (data collection + alerts) is scaffolded and ready to run locally.
-See `docs/ROADMAP.md` for the full plan and what's implemented vs. planned.
+Der Collector, Discord-/Browser-Alarme, die D1-API und das React-Dashboard sind
+implementiert und für einen Cloudflare-Deploy vorbereitet.
 
 ## Quick start (local, zero cloud accounts needed)
 
@@ -62,7 +62,7 @@ packages/
   ingest-api/           Cloudflare Worker: HTTP -> D1 (region + structure tables)
   trade-analyzer/       profit math + opportunity ranking (region or structure)
   historical-analytics/ Phase 3 — placeholder
-apps/web/               dashboard frontend — placeholder (Phase 1.5)
+apps/web/               React-Dashboard: Preise, Routen, Verlauf, Alarme
 config/                 regions, watchlist, alert rules, structures (JSON)
 db/migrations/          D1 SQL schema
 .github/workflows/      the actual scheduler (cron) + CI
@@ -78,14 +78,13 @@ docs/                   architecture, roadmap, ESI-specific notes
 - **Simple over clever**: no framework magic, plain TypeScript, JSON config
   files instead of a config UI, npm workspaces instead of a monorepo tool.
 - **Zero cost to run**: GitHub Actions (public repo) for the scheduler,
-  Cloudflare Workers + D1 free tier for storage/API, Cloudflare Pages or
-  Vercel free tier for the dashboard. See `docs/ARCHITECTURE.md` for the
+  Cloudflare Workers + D1 Free für Dashboard, Storage und API. Siehe
+  `docs/ARCHITECTURE.md` für die
   free-tier numbers this was checked against.
 
 ## Deploying
 
-See `packages/ingest-api/README.md` for the Cloudflare setup walkthrough,
-and `docs/ROADMAP.md` for the order to do things in.
+Siehe `docs/DEPLOYMENT.md` für den Cloudflare-Deploy.
 
 ## License
 

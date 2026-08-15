@@ -2,18 +2,13 @@ name: Collect market data
 
 on:
   schedule:
-    # Hourly, offset from the top of the hour to dodge GitHub's documented
-    # high-load window there. We tried */30 first — GitHub's schedule
-    # trigger is best-effort and silently drops most runs faster than
-    # hourly (observed gaps of 60-200min in practice, not 30), so this is
-    # the fastest cadence GitHub Actions actually delivers reliably. See
-    # docs/ARCHITECTURE.md for the host-agnostic HTTP-trigger alternative
-    # if you need true 30min cadence later.
+    # Every 30 minutes, offset from the top of the hour to reduce delays
+    # during GitHub Actions' documented high-load window.
     #
     # GitHub schedules on public repos with no other repo activity for 60
     # days get auto-disabled — see docs/ROADMAP.md for why that's very
     # unlikely to bite us, and what to do if it ever does.
-    - cron: "7 * * * *"
+    - cron: "7,37 * * * *"
   workflow_dispatch: {} # lets you trigger a run manually from the Actions tab
 
 jobs:
